@@ -1,5 +1,11 @@
 # SaaS Template
 
+[![CI](https://github.com/gleicon/saas-template/actions/workflows/ci.yml/badge.svg)](https://github.com/gleicon/saas-template/actions/workflows/ci.yml)
+[![Code Coverage](https://codecov.io/gh/gleicon/saas-template/branch/main/graph/badge.svg)](https://codecov.io/gh/gleicon/saas-template)
+[![Security Scan](https://github.com/gleicon/saas-template/actions/workflows/security.yml/badge.svg)](https://github.com/gleicon/saas-template/actions/workflows/security.yml)
+[![Dependencies](https://github.com/gleicon/saas-template/actions/workflows/dependencies.yml/badge.svg)](https://github.com/gleicon/saas-template/actions/workflows/dependencies.yml)
+[![Release](https://github.com/gleicon/saas-template/actions/workflows/release.yml/badge.svg)](https://github.com/gleicon/saas-template/actions/workflows/release.yml)
+
 A modern SaaS template built with Next.js, TypeScript, and Tailwind CSS. This template includes user management, authentication, payment integration, and a beautiful landing page.
 
 ## Table of Contents
@@ -1524,7 +1530,7 @@ AWS Elastic Beanstalk provides easy deployment with managed infrastructure.
    
    export const limiter = rateLimit({
      windowMs: 15 * 60 * 1000, // 15 minutes
-     max: 100 // limit each IP to 100 requests per windowMs
+     max: 100, // limit each IP to 100 requests per windowMs
    })
    ```
 
