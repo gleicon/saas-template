@@ -1,18 +1,12 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { NextAuthOptions } from "next-auth";
-import { prisma } from "./prisma";
-import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
 export const authOptions: NextAuthOptions = {
     adapter: PrismaAdapter(prisma),
-    session: {
-        strategy: "jwt",
-    },
-    pages: {
-        signIn: "/login",
-    },
     providers: [
         GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -26,63 +20,59 @@ export const authOptions: NextAuthOptions = {
             },
             async authorize(credentials) {
                 if (!credentials?.email || !credentials?.password) {
-                    return null;
+                    throw new Error("Invalid credentials");
                 }
 
                 const user = await prisma.user.findUnique({
-                    where: {
-                        email: credentials.email,
-                    },
+                    where: { email: credentials.email },
                 });
 
-                if (!user || !user.password) {
-                    return null;
+                if (!user || !user?.password) {
+                    throw new Error("Invalid credentials");
                 }
 
-                const isPasswordValid = await bcrypt.compare(
+                const isCorrectPassword = await bcrypt.compare(
                     credentials.password,
                     user.password
                 );
 
-                if (!isPasswordValid) {
-                    return null;
+                if (!isCorrectPassword) {
+                    throw new Error("Invalid credentials");
                 }
 
-                return {
-                    id: user.id,
-                    email: user.email,
-                    name: user.name,
-                };
+                return user;
             },
         }),
     ],
+    session: {
+        strategy: "jwt",
+    },
+    pages: {
+        signIn: "/login",
+        signOut: "/login",
+        error: "/login",
+        verifyRequest: "/login",
+        newUser: "/register",
+    },
     callbacks: {
-        async session({ token, session }) {
-            if (token) {
-                session.user.id = token.id;
+        async session({ session, token }) {
+            if (session.user) {
+                session.user.id = token.sub!;
                 session.user.name = token.name;
+                session.user.email = token.email;
+                session.user.image = token.picture;
             }
             return session;
         },
         async jwt({ token, user }) {
-            const dbUser = await prisma.user.findFirst({
-                where: {
-                    email: token.email,
-                },
-            });
-
-            if (!dbUser) {
-                if (user) {
-                    token.id = user?.id;
-                }
-                return token;
+            if (user) {
+                token.id = user.id;
+                token.name = user.name;
+                token.email = user.email;
+                token.picture = user.image;
             }
-
-            return {
-                id: dbUser.id,
-                name: dbUser.name,
-                email: dbUser.email,
-            };
+            return token;
         },
     },
+    debug: process.env.NODE_ENV === "development",
 }; 

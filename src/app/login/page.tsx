@@ -62,15 +62,12 @@ export default function LoginPage() {
                     </CardContent>
                     <CardFooter className="flex flex-col space-y-4">
                         <Button className="w-full">Login</Button>
-                        <div className="text-sm text-center">
-                            Don't have an account?{" "}
-                            <Link
-                                href="/register"
-                                className="text-primary hover:underline underline-offset-4"
-                            >
-                                Register
+                        <p className="text-sm text-gray-600">
+                            Don&apos;t have an account?{" "}
+                            <Link href="/register" className="text-blue-600 hover:underline">
+                                Sign up
                             </Link>
-                        </div>
+                        </p>
                     </CardFooter>
                 </Card>
             </main>

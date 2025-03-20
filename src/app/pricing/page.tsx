@@ -39,7 +39,7 @@ export default function PricingPage() {
                                     Simple, Transparent Pricing
                                 </h1>
                                 <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400">
-                                    Choose the plan that's right for you. All plans include a 14-day free trial.
+                                    Choose the plan that&apos;s right for you. All plans include a 14-day free trial.
                                 </p>
                             </div>
                         </div>
@@ -86,6 +86,12 @@ export default function PricingPage() {
                                 </div>
                             ))}
                         </div>
+                        <p className="text-sm text-gray-600">
+                            Already have an account?{" "}
+                            <Link href="/login" className="text-blue-600 hover:underline">
+                                Sign in
+                            </Link>
+                        </p>
                     </div>
                 </section>
             </main>
