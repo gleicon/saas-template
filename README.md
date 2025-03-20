@@ -52,6 +52,10 @@ A modern SaaS template built with Next.js, TypeScript, and Tailwind CSS. This te
   - [Development](#development)
     - [Project Structure](#project-structure)
     - [Available Scripts](#available-scripts)
+  - [Development Tools \& CI/CD](#development-tools--cicd)
+    - [GitHub Actions Workflows](#github-actions-workflows)
+    - [Development Tools](#development-tools)
+    - [Development Commands](#development-commands)
   - [Contributing](#contributing)
   - [License](#license)
   - [Deployment Options](#deployment-options)
@@ -784,6 +788,313 @@ src/
 - `npm run lint` - Run ESLint
 - `npm run prisma:generate` - Generate Prisma client
 - `npm run prisma:push` - Push schema changes to database
+
+[↑ Back to top](#table-of-contents)
+
+## Development Tools & CI/CD
+
+### GitHub Actions Workflows
+
+1. **Main CI Pipeline** (`.github/workflows/ci.yml`):
+   ```yaml
+   name: CI
+   
+   on:
+     push:
+       branches: [ main ]
+     pull_request:
+       branches: [ main ]
+   
+   jobs:
+     test:
+       runs-on: ubuntu-latest
+       
+       services:
+         postgres:
+           image: postgres:14
+           env:
+             POSTGRES_USER: postgres
+             POSTGRES_PASSWORD: postgres
+             POSTGRES_DB: test_db
+           ports:
+             - 5432:5432
+           options: >-
+             --health-cmd pg_isready
+             --health-interval 10s
+             --health-timeout 5s
+             --health-retries 5
+   
+       steps:
+         - uses: actions/checkout@v3
+         
+         - name: Setup Node.js
+           uses: actions/setup-node@v3
+           with:
+             node-version: '18'
+             cache: 'npm'
+         
+         - name: Install dependencies
+           run: npm ci
+         
+         - name: Generate Prisma Client
+           run: npx prisma generate
+         
+         - name: Run linting
+           run: npm run lint
+         
+         - name: Run type checking
+           run: npm run type-check
+         
+         - name: Run tests
+           run: npm test
+           env:
+             DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+             NEXTAUTH_SECRET: test_secret
+             NEXTAUTH_URL: http://localhost:3000
+   ```
+
+2. **Release Workflow** (`.github/workflows/release.yml`):
+   ```yaml
+   name: Release
+   
+   on:
+     push:
+       tags:
+         - 'v*'
+   
+   jobs:
+     release:
+       runs-on: ubuntu-latest
+       
+       steps:
+         - uses: actions/checkout@v3
+         
+         - name: Setup Node.js
+           uses: actions/setup-node@v3
+           with:
+             node-version: '18'
+         
+         - name: Install dependencies
+           run: npm ci
+         
+         - name: Build
+           run: npm run build
+         
+         - name: Create Release
+           uses: softprops/action-gh-release@v1
+           with:
+             files: |
+               dist/*.zip
+               dist/*.tar.gz
+           env:
+             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+   ```
+
+3. **Dependency Updates** (`.github/workflows/dependencies.yml`):
+   ```yaml
+   name: Dependencies
+   
+   on:
+     schedule:
+       - cron: '0 0 * * 0'  # Run weekly
+   
+   jobs:
+     update:
+       runs-on: ubuntu-latest
+       
+       steps:
+         - uses: actions/checkout@v3
+         
+         - name: Setup Node.js
+           uses: actions/setup-node@v3
+           with:
+             node-version: '18'
+         
+         - name: Install dependencies
+           run: npm ci
+         
+         - name: Update dependencies
+           run: npm update
+         
+         - name: Create Pull Request
+           uses: peter-evans/create-pull-request@v5
+           with:
+             commit-message: 'chore: update dependencies'
+             title: 'chore: update dependencies'
+             body: 'Automated dependency updates'
+   ```
+
+### Development Tools
+
+1. **Code Quality Tools**:
+   ```json
+   // package.json
+   {
+     "scripts": {
+       "lint": "eslint . --ext .ts,.tsx",
+       "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+       "type-check": "tsc --noEmit",
+       "test": "jest",
+       "test:watch": "jest --watch",
+       "test:coverage": "jest --coverage",
+       "prepare": "husky install"
+     },
+     "devDependencies": {
+       "@types/jest": "^29.5.0",
+       "@typescript-eslint/eslint-plugin": "^5.59.0",
+       "@typescript-eslint/parser": "^5.59.0",
+       "eslint": "^8.38.0",
+       "eslint-config-next": "^13.3.0",
+       "eslint-config-prettier": "^8.8.0",
+       "eslint-plugin-react": "^7.32.2",
+       "eslint-plugin-react-hooks": "^4.6.0",
+       "husky": "^8.0.3",
+       "jest": "^29.5.0",
+       "jest-environment-jsdom": "^29.5.0",
+       "lint-staged": "^13.2.0",
+       "prettier": "^2.8.7",
+       "ts-jest": "^29.1.0",
+       "typescript": "^5.0.4"
+     }
+   }
+   ```
+
+2. **Git Hooks** (`.husky/pre-commit`):
+   ```bash
+   #!/bin/sh
+   . "$(dirname "$0")/_/husky.sh"
+   
+   npm run lint
+   npm run type-check
+   npm run test
+   ```
+
+3. **VS Code Extensions**:
+   ```json
+   // .vscode/extensions.json
+   {
+     "recommendations": [
+       "dbaeumer.vscode-eslint",
+       "esbenp.prettier-vscode",
+       "ms-vscode.vscode-typescript-next",
+       "bradlc.vscode-tailwindcss",
+       "prisma.prisma",
+       "ms-azuretools.vscode-docker",
+       "eamodio.gitlens",
+       "streetsidesoftware.code-spell-checker"
+     ]
+   }
+   ```
+
+4. **VS Code Settings**:
+   ```json
+   // .vscode/settings.json
+   {
+     "editor.formatOnSave": true,
+     "editor.codeActionsOnSave": {
+       "source.fixAll.eslint": true
+     },
+     "typescript.tsdk": "node_modules/typescript/lib",
+     "typescript.enablePromptUseWorkspaceTsdk": true,
+     "tailwindCSS.experimental.classRegex": [
+       ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
+       ["cn\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
+     ],
+     "files.associations": {
+       "*.css": "tailwindcss"
+     }
+   }
+   ```
+
+5. **Testing Setup** (`jest.config.js`):
+   ```javascript
+   const nextJest = require('next/jest')
+   
+   const createJestConfig = nextJest({
+     dir: './',
+   })
+   
+   const customJestConfig = {
+     setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+     testEnvironment: 'jest-environment-jsdom',
+     moduleNameMapper: {
+       '^@/(.*)$': '<rootDir>/src/$1',
+     },
+     collectCoverageFrom: [
+       'src/**/*.{js,jsx,ts,tsx}',
+       '!src/**/*.d.ts',
+       '!src/**/*.stories.{js,jsx,ts,tsx}',
+       '!src/**/*.test.{js,jsx,ts,tsx}',
+     ],
+   }
+   
+   module.exports = createJestConfig(customJestConfig)
+   ```
+
+6. **ESLint Configuration** (`.eslintrc.js`):
+   ```javascript
+   module.exports = {
+     extends: [
+       'next/core-web-vitals',
+       'plugin:@typescript-eslint/recommended',
+       'plugin:react/recommended',
+       'plugin:react-hooks/recommended',
+       'prettier',
+     ],
+     plugins: ['@typescript-eslint', 'react', 'react-hooks'],
+     rules: {
+       'react/react-in-jsx-scope': 'off',
+       'react/prop-types': 'off',
+       '@typescript-eslint/explicit-module-boundary-types': 'off',
+       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+     },
+     settings: {
+       react: {
+         version: 'detect',
+       },
+     },
+   }
+   ```
+
+7. **Prettier Configuration** (`.prettierrc`):
+   ```json
+   {
+     "semi": true,
+     "trailingComma": "es5",
+     "singleQuote": true,
+     "tabWidth": 2,
+     "useTabs": false,
+     "printWidth": 100
+   }
+   ```
+
+### Development Commands
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Run tests
+npm test
+npm run test:watch
+npm run test:coverage
+
+# Lint and format code
+npm run lint
+npm run format
+
+# Type checking
+npm run type-check
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
+```
 
 [↑ Back to top](#table-of-contents)
 
