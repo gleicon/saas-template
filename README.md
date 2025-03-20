@@ -2,6 +2,84 @@
 
 A modern SaaS template built with Next.js, TypeScript, and Tailwind CSS. This template includes user management, authentication, payment integration, and a beautiful landing page.
 
+## Table of Contents
+
+- [SaaS Template](#saas-template)
+  - [Table of Contents](#table-of-contents)
+  - [Quick Start](#quick-start)
+    - [Running Locally](#running-locally)
+      - [Option 1: Without Docker (Recommended for development)](#option-1-without-docker-recommended-for-development)
+      - [Option 2: With Docker](#option-2-with-docker)
+    - [Development Tips](#development-tips)
+  - [Features](#features)
+  - [Payment Providers](#payment-providers)
+    - [Stripe](#stripe)
+    - [Razorpay](#razorpay)
+    - [PayPal](#paypal)
+  - [Integrations](#integrations)
+    - [Email Service](#email-service)
+    - [File Storage](#file-storage)
+    - [Analytics](#analytics)
+  - [Prerequisites](#prerequisites)
+  - [Getting Started](#getting-started)
+    - [Using the Setup Script (Recommended)](#using-the-setup-script-recommended)
+    - [Manual Setup](#manual-setup)
+    - [Docker Deployment](#docker-deployment)
+  - [Creating Your Own SaaS Product](#creating-your-own-saas-product)
+    - [1. Fork and Customize](#1-fork-and-customize)
+    - [2. Configure Services](#2-configure-services)
+    - [3. Deploy Your SaaS](#3-deploy-your-saas)
+    - [4. Customize Features](#4-customize-features)
+    - [5. Development Workflow](#5-development-workflow)
+    - [6. Monitoring and Analytics](#6-monitoring-and-analytics)
+    - [7. Security Considerations](#7-security-considerations)
+  - [Authentication Setup](#authentication-setup)
+    - [Google OAuth Setup](#google-oauth-setup)
+    - [Email Setup](#email-setup)
+      - [1. Resend (Recommended for simplicity)](#1-resend-recommended-for-simplicity)
+      - [2. SendGrid](#2-sendgrid)
+      - [3. Amazon SES](#3-amazon-ses)
+      - [4. SMTP Server](#4-smtp-server)
+      - [5. PostMark](#5-postmark)
+      - [6. Mailgun](#6-mailgun)
+    - [Cost Comparison for Email Services](#cost-comparison-for-email-services)
+  - [Two-Factor Authentication (2FA)](#two-factor-authentication-2fa)
+  - [Email Verification](#email-verification)
+  - [Stripe Setup](#stripe-setup)
+  - [User Account Creation](#user-account-creation)
+  - [Product Provisioning](#product-provisioning)
+  - [Managing Your Subscription](#managing-your-subscription)
+  - [Development](#development)
+    - [Project Structure](#project-structure)
+    - [Available Scripts](#available-scripts)
+  - [Contributing](#contributing)
+  - [License](#license)
+  - [Deployment Options](#deployment-options)
+    - [1. Vercel (Recommended for Next.js)](#1-vercel-recommended-for-nextjs)
+    - [2. DigitalOcean App Platform](#2-digitalocean-app-platform)
+    - [3. Google Cloud Run](#3-google-cloud-run)
+    - [4. AWS Elastic Beanstalk](#4-aws-elastic-beanstalk)
+    - [Cost Comparison](#cost-comparison)
+    - [Database Options](#database-options)
+    - [Monitoring and Logging](#monitoring-and-logging)
+  - [Troubleshooting Guide](#troubleshooting-guide)
+    - [Common Deployment Issues](#common-deployment-issues)
+      - [1. Database Connection Issues](#1-database-connection-issues)
+      - [2. Authentication Problems](#2-authentication-problems)
+      - [3. Payment Integration Issues](#3-payment-integration-issues)
+      - [4. Build and Deployment Issues](#4-build-and-deployment-issues)
+      - [5. Performance Issues](#5-performance-issues)
+      - [6. Environment-Specific Issues](#6-environment-specific-issues)
+    - [Getting Help](#getting-help)
+  - [Scaling and Load Balancing](#scaling-and-load-balancing)
+    - [Horizontal Scaling](#horizontal-scaling)
+    - [Caching Strategy](#caching-strategy)
+    - [Database Scaling](#database-scaling)
+    - [Performance Optimization](#performance-optimization)
+    - [Monitoring and Alerts](#monitoring-and-alerts)
+    - [Auto-scaling Configuration](#auto-scaling-configuration)
+    - [Disaster Recovery](#disaster-recovery)
+
 ## Quick Start
 
 The easiest way to create your own SaaS project is to use the setup script:
@@ -31,6 +109,96 @@ The setup script will:
 
 After the setup is complete, follow the instructions in the terminal to start development.
 
+### Running Locally
+
+#### Option 1: Without Docker (Recommended for development)
+
+1. Navigate to your project directory:
+   ```bash
+   cd your-project-name
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Set up environment variables:
+   ```bash
+   cp .env.example .env.local
+   ```
+
+4. Configure your environment variables in `.env.local`:
+   ```env
+   # Authentication
+   GOOGLE_CLIENT_ID=your_google_client_id
+   GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+   # Database
+   DATABASE_URL=your_postgresql_database_url
+
+   # Stripe
+   STRIPE_SECRET_KEY=your_stripe_secret_key
+   STRIPE_WEBHOOK_SECRET=your_stripe_webhook_secret
+   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
+
+   # Next Auth
+   NEXTAUTH_URL=http://localhost:3000
+   NEXTAUTH_SECRET=your_nextauth_secret
+
+   # Email (Resend)
+   RESEND_API_KEY=your_resend_api_key
+   ```
+
+5. Set up the database:
+   ```bash
+   npx prisma generate
+   npx prisma db push
+   ```
+
+6. Start the development server:
+   ```bash
+   npm run dev
+   ```
+
+7. Visit `http://localhost:3000` in your browser.
+
+#### Option 2: With Docker
+
+1. Navigate to your project directory:
+   ```bash
+   cd your-project-name
+   ```
+
+2. Set up environment variables:
+   ```bash
+   cp .env.example .env.local
+   ```
+
+3. Configure your environment variables in `.env.local` (same as above)
+
+4. Build and start the containers:
+   ```bash
+   docker-compose up --build
+   ```
+
+5. In a new terminal, run database migrations:
+   ```bash
+   docker-compose exec app npx prisma generate
+   docker-compose exec app npx prisma db push
+   ```
+
+6. Visit `http://localhost:3000` in your browser.
+
+### Development Tips
+
+- The development server includes hot reloading for instant feedback
+- Use `npm run lint` to check for code style issues
+- Run `npm run prisma:studio` to open Prisma's database management UI
+- Use `npm run build` to test production builds locally
+
+[↑ Back to top](#table-of-contents)
+
 ## Features
 
 - 🚀 Next.js 14 with App Router
@@ -48,6 +216,8 @@ After the setup is complete, follow the instructions in the terminal to start de
 - 🎯 Landing page
 - 📱 Responsive design
 - 🐳 Docker support
+
+[↑ Back to top](#table-of-contents)
 
 ## Payment Providers
 
@@ -71,6 +241,8 @@ The template supports multiple payment providers to accommodate different region
 - Supports multiple currencies
 - Best for: International transactions
 
+[↑ Back to top](#table-of-contents)
+
 ## Integrations
 
 The template includes several optional integrations that you can enable during setup:
@@ -91,6 +263,8 @@ The template includes several optional integrations that you can enable during s
 - **Google Analytics**: Google Analytics 4 integration
 - **Plausible Analytics**: Privacy-focused analytics
 
+[↑ Back to top](#table-of-contents)
+
 ## Prerequisites
 
 Before you begin, ensure you have the following installed:
@@ -101,6 +275,8 @@ Before you begin, ensure you have the following installed:
 - Google OAuth credentials (for social login)
 - Resend account (for email)
 - Docker and Docker Compose (for containerized deployment)
+
+[↑ Back to top](#table-of-contents)
 
 ## Getting Started
 
@@ -200,6 +376,8 @@ Before you begin, ensure you have the following installed:
    ```
 
 3. Visit `http://localhost:3000` in your browser.
+
+[↑ Back to top](#table-of-contents)
 
 ## Creating Your Own SaaS Product
 
@@ -377,6 +555,8 @@ Before you begin, ensure you have the following installed:
    - Implement CORS policies
    - Regular security audits
 
+[↑ Back to top](#table-of-contents)
+
 ## Authentication Setup
 
 ### Google OAuth Setup
@@ -485,6 +665,8 @@ Choose one of the following email providers:
    - Self-hosted options available
    - Best for: Complete control
 
+[↑ Back to top](#table-of-contents)
+
 ## Two-Factor Authentication (2FA)
 
 1. Log in to your account
@@ -494,12 +676,16 @@ Choose one of the following email providers:
 5. Enter the code from your authenticator app
 6. Save your backup codes securely
 
+[↑ Back to top](#table-of-contents)
+
 ## Email Verification
 
 1. Register a new account
 2. Check your email for the verification link
 3. Click the link to verify your email
 4. You can now log in with your verified account
+
+[↑ Back to top](#table-of-contents)
 
 ## Stripe Setup
 
@@ -527,6 +713,8 @@ Choose one of the following email providers:
      - `customer.subscription.deleted`
    - Copy the webhook signing secret to your `.env.local` file
 
+[↑ Back to top](#table-of-contents)
+
 ## User Account Creation
 
 1. Visit the registration page at `/register`
@@ -537,6 +725,8 @@ Choose one of the following email providers:
 3. Click "Create Account"
 4. Verify your email
 5. Log in to your account
+
+[↑ Back to top](#table-of-contents)
 
 ## Product Provisioning
 
@@ -559,6 +749,8 @@ After creating a user account, follow these steps to provision the product:
    - Your subscription status will be updated
    - You'll have access to plan-specific features
 
+[↑ Back to top](#table-of-contents)
+
 ## Managing Your Subscription
 
 1. Go to Settings → Subscription
@@ -567,6 +759,8 @@ After creating a user account, follow these steps to provision the product:
    - Change your plan
    - Update billing information
    - Cancel your subscription
+
+[↑ Back to top](#table-of-contents)
 
 ## Development
 
@@ -591,6 +785,8 @@ src/
 - `npm run prisma:generate` - Generate Prisma client
 - `npm run prisma:push` - Push schema changes to database
 
+[↑ Back to top](#table-of-contents)
+
 ## Contributing
 
 1. Fork the repository
@@ -599,9 +795,13 @@ src/
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+[↑ Back to top](#table-of-contents)
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+[↑ Back to top](#table-of-contents)
 
 ## Deployment Options
 
@@ -851,6 +1051,8 @@ AWS Elastic Beanstalk provides easy deployment with managed infrastructure.
    - LogRocket: $99/month
    - DataDog: $15/month
 
+[↑ Back to top](#table-of-contents)
+
 ## Troubleshooting Guide
 
 ### Common Deployment Issues
@@ -1072,6 +1274,8 @@ AWS Elastic Beanstalk provides easy deployment with managed infrastructure.
    - Hire a consultant
    - Contact platform support
    - Use managed services
+
+[↑ Back to top](#table-of-contents)
 
 ## Scaling and Load Balancing
 
@@ -1393,3 +1597,5 @@ AWS Elastic Beanstalk provides easy deployment with managed infrastructure.
      },
    });
    ```
+
+[↑ Back to top](#table-of-contents)
