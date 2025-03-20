@@ -78,7 +78,10 @@ The template includes several optional integrations that you can enable during s
 ### Email Service
 - **Resend**: Modern email API with great deliverability
 - **SendGrid**: Popular email service with extensive features
+- **Amazon SES**: Cost-effective for high volume
 - **SMTP**: Use your own SMTP server
+- **PostMark**: Great for transactional emails
+- **Mailgun**: Developer-friendly email service
 
 ### File Storage
 - **AWS S3**: Amazon S3 for file storage
@@ -247,7 +250,7 @@ Before you begin, ensure you have the following installed:
    - Update OAuth credentials
 
 3. Set up email service:
-   - Create a Resend account
+   - Create Resend account
    - Verify your domain
    - Update email templates in `src/lib/email.ts`
 
@@ -387,23 +390,100 @@ Before you begin, ensure you have the following installed:
 7. Add authorized redirect URI: `http://localhost:3000/api/auth/callback/google`
 8. Copy the Client ID and Client Secret to your `.env.local` file
 
-### Email Setup (Resend)
+### Email Setup
 
+Choose one of the following email providers:
+
+#### 1. Resend (Recommended for simplicity)
 1. Create an account at [Resend](https://resend.com)
 2. Get your API key from the dashboard
-3. Add it to your `.env.local` file
+3. Add to your `.env.local`:
+   ```env
+   EMAIL_PROVIDER=resend
+   RESEND_API_KEY=your_resend_api_key
+   ```
 
-### NextAuth.js Configuration
+#### 2. SendGrid
+1. Create an account at [SendGrid](https://sendgrid.com)
+2. Create an API key with "Mail Send" permissions
+3. Add to your `.env.local`:
+   ```env
+   EMAIL_PROVIDER=sendgrid
+   SENDGRID_API_KEY=your_sendgrid_api_key
+   ```
 
-The template uses NextAuth.js with the following features:
-- JWT-based session management
-- Prisma adapter for database integration
-- Google OAuth provider
-- Credentials provider for email/password login
-- Custom pages for login, register, and error handling
-- Password reset functionality
-- Email verification
-- Two-factor authentication (2FA)
+#### 3. Amazon SES
+1. Set up AWS account and configure SES
+2. Create SMTP credentials
+3. Add to your `.env.local`:
+   ```env
+   EMAIL_PROVIDER=ses
+   AWS_ACCESS_KEY_ID=your_aws_access_key
+   AWS_SECRET_ACCESS_KEY=your_aws_secret_key
+   AWS_REGION=your_aws_region
+   ```
+
+#### 4. SMTP Server
+1. Configure your SMTP server
+2. Add to your `.env.local`:
+   ```env
+   EMAIL_PROVIDER=smtp
+   SMTP_HOST=your_smtp_host
+   SMTP_PORT=587
+   SMTP_USER=your_smtp_username
+   SMTP_PASSWORD=your_smtp_password
+   ```
+
+#### 5. PostMark
+1. Create an account at [PostMark](https://postmarkapp.com)
+2. Get your server API token
+3. Add to your `.env.local`:
+   ```env
+   EMAIL_PROVIDER=postmark
+   POSTMARK_API_TOKEN=your_postmark_api_token
+   ```
+
+#### 6. Mailgun
+1. Create an account at [Mailgun](https://mailgun.com)
+2. Get your API key and domain
+3. Add to your `.env.local`:
+   ```env
+   EMAIL_PROVIDER=mailgun
+   MAILGUN_API_KEY=your_mailgun_api_key
+   MAILGUN_DOMAIN=your_mailgun_domain
+   ```
+
+### Cost Comparison for Email Services
+
+1. **Resend**
+   - Free tier: 100 emails/day
+   - Pro: $20/month for 50,000 emails
+   - Best for: Modern applications, great deliverability
+
+2. **SendGrid**
+   - Free tier: 100 emails/day
+   - Pro: $14.95/month for 50,000 emails
+   - Best for: High volume, extensive features
+
+3. **Amazon SES**
+   - Pay per use: $0.10 per 1,000 emails
+   - Free tier: 62,000 emails/month
+   - Best for: Cost-effective high volume
+
+4. **PostMark**
+   - Free trial: 100 emails
+   - Pro: $15/month for 10,000 emails
+   - Best for: Transactional emails
+
+5. **Mailgun**
+   - Free trial: 3 months
+   - Pro: $35/month for 50,000 emails
+   - Best for: Developer-friendly features
+
+6. **SMTP Server**
+   - Cost varies by provider
+   - Self-hosted options available
+   - Best for: Complete control
 
 ## Two-Factor Authentication (2FA)
 
@@ -992,3 +1072,324 @@ AWS Elastic Beanstalk provides easy deployment with managed infrastructure.
    - Hire a consultant
    - Contact platform support
    - Use managed services
+
+## Scaling and Load Balancing
+
+### Horizontal Scaling
+
+1. **Container Orchestration**
+   ```yaml
+   # docker-compose.scale.yml
+   version: '3.8'
+   services:
+     app:
+       deploy:
+         replicas: 3
+         resources:
+           limits:
+             cpus: '1'
+             memory: 1G
+           reservations:
+             cpus: '0.5'
+             memory: 512M
+       environment:
+         - NODE_ENV=production
+         - DATABASE_URL=${DATABASE_URL}
+         - REDIS_URL=${REDIS_URL}
+     nginx:
+       image: nginx:alpine
+       ports:
+         - "80:80"
+       volumes:
+         - ./nginx.conf:/etc/nginx/nginx.conf:ro
+     redis:
+       image: redis:alpine
+       volumes:
+         - redis_data:/data
+   volumes:
+     redis_data:
+   ```
+
+2. **Load Balancer Configuration**
+   ```nginx
+   # nginx.conf
+   events {
+     worker_connections 1024;
+   }
+
+   http {
+     upstream app_servers {
+       least_conn;  # Load balancing algorithm
+       server app:3000;
+       server app:3000;
+       server app:3000;
+     }
+
+     server {
+       listen 80;
+       server_name your-domain.com;
+
+       location / {
+         proxy_pass http://app_servers;
+         proxy_http_version 1.1;
+         proxy_set_header Upgrade $http_upgrade;
+         proxy_set_header Connection 'upgrade';
+         proxy_set_header Host $host;
+         proxy_cache_bypass $http_upgrade;
+         proxy_set_header X-Real-IP $remote_addr;
+         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+         proxy_set_header X-Forwarded-Proto $scheme;
+       }
+     }
+   }
+   ```
+
+### Caching Strategy
+
+1. **Redis Caching**
+   ```typescript
+   // src/lib/redis.ts
+   import { Redis } from 'ioredis';
+
+   const redis = new Redis(process.env.REDIS_URL);
+
+   export async function cacheData(key: string, data: any, ttl: number = 3600) {
+     await redis.setex(key, ttl, JSON.stringify(data));
+   }
+
+   export async function getCachedData(key: string) {
+     const data = await redis.get(key);
+     return data ? JSON.parse(data) : null;
+   }
+   ```
+
+2. **API Response Caching**
+   ```typescript
+   // src/app/api/products/route.ts
+   import { cacheData, getCachedData } from '@/lib/redis';
+
+   export async function GET() {
+     const cacheKey = 'products';
+     const cachedProducts = await getCachedData(cacheKey);
+     
+     if (cachedProducts) {
+       return Response.json(cachedProducts);
+     }
+
+     const products = await prisma.product.findMany();
+     await cacheData(cacheKey, products);
+     
+     return Response.json(products);
+   }
+   ```
+
+### Database Scaling
+
+1. **Read Replicas**
+   ```env
+   # Primary database
+   DATABASE_URL=postgresql://user:password@primary-db:5432/dbname
+   
+   # Read replicas
+   DATABASE_REPLICA_URL=postgresql://user:password@replica-db:5432/dbname
+   ```
+
+2. **Connection Pooling**
+   ```typescript
+   // src/lib/db.ts
+   import { PrismaClient } from '@prisma/client';
+
+   const prisma = new PrismaClient({
+     datasources: {
+       db: {
+         url: process.env.DATABASE_URL
+       }
+     },
+     connectionLimit: 20,
+     pool: {
+       min: 2,
+       max: 10
+     }
+   });
+   ```
+
+### Performance Optimization
+
+1. **CDN Configuration**
+   ```typescript
+   // next.config.js
+   module.exports = {
+     images: {
+       domains: ['your-cdn-domain.com'],
+       formats: ['image/avif', 'image/webp'],
+       minimumCacheTTL: 60,
+     },
+     async headers() {
+       return [
+         {
+           source: '/:all*(svg|jpg|png)',
+           headers: [
+             {
+               key: 'Cache-Control',
+               value: 'public, max-age=31536000, immutable',
+             },
+           ],
+         },
+       ];
+     },
+   };
+   ```
+
+2. **API Rate Limiting**
+   ```typescript
+   // src/middleware.ts
+   import rateLimit from 'express-rate-limit';
+   import RedisStore from 'rate-limit-redis';
+   import { redis } from '@/lib/redis';
+
+   export const apiLimiter = rateLimit({
+     store: new RedisStore({
+       client: redis,
+       prefix: 'rate-limit:',
+     }),
+     windowMs: 15 * 60 * 1000, // 15 minutes
+     max: 100, // limit each IP to 100 requests per windowMs
+     message: 'Too many requests from this IP, please try again later.',
+   });
+   ```
+
+### Monitoring and Alerts
+
+1. **Health Checks**
+   ```typescript
+   // src/app/api/health/route.ts
+   export async function GET() {
+     try {
+       // Check database connection
+       await prisma.$queryRaw`SELECT 1`;
+       
+       // Check Redis connection
+       await redis.ping();
+       
+       return Response.json({ status: 'healthy' });
+     } catch (error) {
+       return Response.json(
+         { status: 'unhealthy', error: error.message },
+         { status: 500 }
+       );
+     }
+   }
+   ```
+
+2. **Resource Monitoring**
+   ```typescript
+   // src/lib/monitoring.ts
+   import { metrics } from '@opentelemetry/api';
+
+   const meter = metrics.getMeter('saas-app');
+
+   // Create metrics
+   const requestCounter = meter.createCounter('http_requests_total', {
+     description: 'Total number of HTTP requests',
+   });
+
+   const responseTime = meter.createHistogram('http_response_time_seconds', {
+     description: 'HTTP response time in seconds',
+   });
+
+   // Record metrics
+   export function recordMetrics(req: Request, res: Response) {
+     requestCounter.add(1);
+     const start = Date.now();
+     res.on('finish', () => {
+       responseTime.record((Date.now() - start) / 1000);
+     });
+   }
+   ```
+
+### Auto-scaling Configuration
+
+1. **Kubernetes HPA**
+   ```yaml
+   # hpa.yaml
+   apiVersion: autoscaling/v2
+   kind: HorizontalPodAutoscaler
+   metadata:
+     name: saas-app
+   spec:
+     scaleTargetRef:
+       apiVersion: apps/v1
+       kind: Deployment
+       name: saas-app
+     minReplicas: 2
+     maxReplicas: 10
+     metrics:
+     - type: Resource
+       resource:
+         name: cpu
+         target:
+           type: Utilization
+           averageUtilization: 70
+     - type: Resource
+       resource:
+         name: memory
+         target:
+           type: Utilization
+           averageUtilization: 80
+   ```
+
+2. **Cloud Provider Auto-scaling**
+   ```yaml
+   # digitalocean.yaml
+   name: saas-app
+   services:
+   - name: web
+     auto_scaling:
+       min_instances: 2
+       max_instances: 10
+       metrics:
+       - type: cpu_utilization
+         target_value: 70
+   ```
+
+### Disaster Recovery
+
+1. **Database Backups**
+   ```bash
+   # backup.sh
+   #!/bin/bash
+   TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+   BACKUP_DIR="/backups"
+   
+   # Create backup
+   pg_dump $DATABASE_URL > "$BACKUP_DIR/backup_$TIMESTAMP.sql"
+   
+   # Upload to S3
+   aws s3 cp "$BACKUP_DIR/backup_$TIMESTAMP.sql" "s3://your-bucket/backups/"
+   
+   # Cleanup old backups
+   find $BACKUP_DIR -type f -mtime +7 -delete
+   ```
+
+2. **Failover Configuration**
+   ```typescript
+   // src/lib/db.ts
+   import { PrismaClient } from '@prisma/client';
+
+   const prisma = new PrismaClient({
+     datasources: {
+       db: {
+         url: process.env.DATABASE_URL
+       }
+     },
+     connectionTimeoutMillis: 5000,
+     retry: {
+       max: 3,
+       backoff: {
+         initial: 1000,
+         max: 5000,
+         factor: 2,
+       },
+     },
+   });
+   ```
